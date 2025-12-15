@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Information Extractor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2em;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 0.95em;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+        }
+
+        input[type="url"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        input[type="url"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .webhook-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .webhook-section label {
+            margin-bottom: 8px;
+        }
+
+        .webhook-section input {
+            font-size: 0.9em;
+        }
+
+        .webhook-help {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: none;
+            margin-top: 30px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .results h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .contact-group {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .contact-group h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+        }
+
+        .contact-group h3::before {
+            content: "📧";
+            margin-right: 8px;
+            font-size: 1.2em;
+        }
+
+        .contact-group.phones h3::before {
+            content: "📱";
+        }
+
+        .contact-group.names h3::before {
+            content: "👤";
+        }
+
+        .contact-item {
+            padding: 8px 12px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            margin: 5px 0;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+        }
+
+        .no-data {
+            color: #999;
+            font-style: italic;
+        }
+
+        .error {
+            display: none;
+            padding: 15px;
+            background: #fee;
+            border-left: 4px solid #f44;
+            border-radius: 5px;
+            color: #c33;
+            margin-top: 20px;
+        }
+
+        .success-badge {
+            display: inline-block;
+            background: #4caf50;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Contact Information Extractor</h1>
+        <p class="subtitle">Extract emails, phone numbers, and names from any article or webpage</p>
+
+        <div class="webhook-section">
+            <label for="webhookUrl">Your n8n Webhook URL:</label>
+            <input 
+                type="url" 
+                id="webhookUrl" 
+                placeholder="https://your-n8n-instance.app.n8n.cloud/webhook/contact-extractor"
+                required
+            >
+            <p class="webhook-help">💡 Paste your n8n webhook URL here (you only need to do this once - it will be saved)</p>
+        </div>
+
+        <div class="input-section">
+            <label for="articleUrl">Article URL:</label>
+            <input 
+                type="url" 
+                id="articleUrl" 
+                placeholder="https://example.com/article"
+                required
+            >
+        </div>
+
+        <button id="extractBtn" onclick="extractContacts()">
+            🚀 Extract Contact Information
+        </button>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 15px; color: #666;">Extracting contact information...</p>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="results" id="results">
+            <span class="success-badge">✓ Extraction Complete</span>
+            <h2>Extracted Contact Information</h2>
+            
+            <div class="contact-group">
+                <h3>Email Addresses</h3>
+                <div id="emails"></div>
+            </div>
+
+            <div class="contact-group phones">
+                <h3>Phone Numbers</h3>
+                <div id="phones"></div>
+            </div>
+
+            <div class="contact-group names">
+                <h3>Names</h3>
+                <div id="names"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load saved webhook URL
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedWebhook = localStorage.getItem('webhookUrl');
+            if (savedWebhook) {
+                document.getElementById('webhookUrl').value = savedWebhook;
+            }
+        });
+
+        async function extractContacts() {
+            const webhookUrl = document.getElementById('webhookUrl').value.trim();
+            const articleUrl = document.getElementById('articleUrl').value.trim();
+            const extractBtn = document.getElementById('extractBtn');
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            const error = document.getElementById('error');
+
+            // Validation
+            if (!webhookUrl) {
+                showError('Please enter your n8n webhook URL first');
+                return;
+            }
+
+            if (!articleUrl) {
+                showError('Please enter an article URL to extract contacts from');
+                return;
+            }
+
+            // Save webhook URL
+            localStorage.setItem('webhookUrl', webhookUrl);
+
+            // Reset UI
+            error.style.display = 'none';
+            results.style.display = 'none';
+            loading.style.display = 'block';
+            extractBtn.disabled = true;
+
+            try {
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        articleUrl: articleUrl
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                displayResults(data);
+
+            } catch (err) {
+                showError(`Failed to extract contacts: ${err.message}. Please check your webhook URL and try again.`);
+            } finally {
+                loading.style.display = 'none';
+                extractBtn.disabled = false;
+            }
+        }
+
+        function displayResults(data) {
+            const results = document.getElementById('results');
+            const emailsDiv = document.getElementById('emails');
+            const phonesDiv = document.getElementById('phones');
+            const namesDiv = document.getElementById('names');
+
+            // Display emails
+            emailsDiv.innerHTML = '';
+            if (data.emails && data.emails.length > 0) {
+                data.emails.forEach(email => {
+                    const div = document.createElement('div');
+                    div.className = 'contact-item';
+                    div.textContent = email;
+                    emailsDiv.appendChild(div);
+                });
+            } else {
+                emailsDiv.innerHTML = '<p class="no-data">No emails found</p>';
+            }
+
+            // Display phones
+            phonesDiv.innerHTML = '';
+            if (data.phones && data.phones.length > 0) {
+                data.phones.forEach(phone => {
+                    const div = document.createElement('div');
+                    div.className = 'contact-item';
+                    div.textContent = phone;
+                    phonesDiv.appendChild(div);
+                });
+            } else {
+                phonesDiv.innerHTML = '<p class="no-data">No phone numbers found</p>';
+            }
+
+            // Display names
+            namesDiv.innerHTML = '';
+            if (data.names && data.names.length > 0) {
+                data.names.forEach(name => {
+                    const div = document.createElement('div');
+                    div.className = 'contact-item';
+                    div.textContent = name;
+                    namesDiv.appendChild(div);
+                });
+            } else {
+                namesDiv.innerHTML = '<p class="no-data">No names found</p>';
+            }
+
+            results.style.display = 'block';
+            results.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function showError(message) {
+            const error = document.getElementById('error');
+            error.textContent = '❌ ' + message;
+            error.style.display = 'block';
+        }
+
+        // Allow Enter key to submit
+        document.getElementById('articleUrl').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                extractContacts();
+            }
+        });
+    </script>
+</body>
+</html>
